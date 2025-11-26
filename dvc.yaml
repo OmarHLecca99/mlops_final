@@ -8,3 +8,11 @@ stages:
       - data/processed/train/
       - data/processed/test/
       - models/pipelines/preprocess.pkl
+  train:
+    cmd: python src/training/train.py
+    deps:
+      - src/training/train.py
+      - data/processed/train/train_arrays.npz
+      - models/pipelines/preprocess.pkl
+    outs:
+      - models/artifacts/model.pkl
