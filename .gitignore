@@ -1,0 +1,7 @@
+data/
+__pycache__/
+.env
+mlruns/
+artifact_store/
+*.pkl
+*.log
