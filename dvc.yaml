@@ -1,0 +1,10 @@
+stages:
+  preprocess_train:
+    cmd: python src/preprocessing/prep_train.py
+    deps:
+      - src/preprocessing/prep_train.py
+      - data/raw/training/p1_extrac.csv
+    outs:
+      - data/processed/train/
+      - data/processed/test/
+      - models/pipelines/preprocess.pkl
