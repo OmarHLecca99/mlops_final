@@ -16,3 +16,13 @@ stages:
       - models/pipelines/preprocess.pkl
     outs:
       - models/artifacts/model.pkl
+  monitor:
+    cmd: python src/monitoring/monitor.py
+    deps:
+      - src/monitoring/monitor.py
+      - models/pipelines/preprocess.pkl
+      - data/processed/train/train_arrays.npz
+      - data/inference_logs/prediction_log.csv
+    outs:
+      - data/monitoring_reports/drift_report.html
+      - data/monitoring_reports/drift_report.json
