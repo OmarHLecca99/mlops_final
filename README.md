@@ -154,10 +154,10 @@ python src/retraining/retrain.py
 
 📦 Docker
 ### Construir la imagen
-docker build -t mlops_final .
+docker-compose build
 
 ### Ejecutar el contenedor
-docker run -it --rm mlops_final
+docker-compose up
 
 📊 MLflow
 ### Iniciar interfaz de experimentos:
