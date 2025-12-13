@@ -1,0 +1,10 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# MLflow únicamente
+RUN pip install mlflow
+
+EXPOSE 5000
+
+CMD ["mlflow", "ui", "--host", "0.0.0.0", "--port", "5000"]

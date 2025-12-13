@@ -1,0 +1,135 @@
+schema: '2.0'
+stages:
+  preprocess_train:
+    cmd: python src/preprocessing/prep_train.py
+    deps:
+    - path: data/raw/training/
+      hash: md5
+      md5: cdac649199ebe2269c3a09ec46f261e9.dir
+      size: 528521812
+      nfiles: 4
+    - path: src/preprocessing/prep_train.py
+      hash: md5
+      md5: ae60fe5604901ff1b7b4d32862d5ec17
+      size: 5580
+    outs:
+    - path: data/processed/test/test_arrays.npz
+      hash: md5
+      md5: c2655f5ca7d52d3e54d297b79f4382a4
+      size: 52660965
+    - path: data/processed/train/train_arrays.npz
+      hash: md5
+      md5: 92c449ca7082ff39e99ceffc40fb3743
+      size: 210499387
+    - path: models/pipelines/preprocess.pkl
+      hash: md5
+      md5: 59a014c74cc618733b3a80459a523e0b
+      size: 10349
+  train:
+    cmd: python src/training/train.py
+    deps:
+    - path: data/processed/train/train_arrays.npz
+      hash: md5
+      md5: 92c449ca7082ff39e99ceffc40fb3743
+      size: 210499387
+    - path: models/pipelines/preprocess.pkl
+      hash: md5
+      md5: 59a014c74cc618733b3a80459a523e0b
+      size: 10349
+    - path: src/training/train.py
+      hash: md5
+      md5: 73cef9cf2ba073bfd5adff1e603d0648
+      size: 5528
+    outs:
+    - path: models/artifacts/model.pkl
+      hash: md5
+      md5: daea8b9e2d5cc257f9dbc8840fbd1659
+      size: 1231919337
+  monitor:
+    cmd: python src/monitoring/monitor.py
+    deps:
+    - path: data/inference_logs/log.csv
+      hash: md5
+      md5: 0442dfbd76575431be3dfa589d22aeea
+      size: 600548474
+    - path: data/processed/train/train_arrays.npz
+      hash: md5
+      md5: 92c449ca7082ff39e99ceffc40fb3743
+      size: 210499387
+    - path: models/pipelines/preprocess.pkl
+      hash: md5
+      md5: 59a014c74cc618733b3a80459a523e0b
+      size: 10349
+    - path: src/monitoring/monitor.py
+      hash: md5
+      md5: ac214b32262116f50204839535c2f003
+      size: 7316
+    outs:
+    - path: data/drift/drift_flag.txt
+      hash: md5
+      md5: cfcd208495d565ef66e7dff9f98764da
+      size: 1
+    - path: data/monitoring_reports/drift_report.html
+      hash: md5
+      md5: a7ef05bc129cbef4bfa4ec1442e2d09c
+      size: 5518065
+    - path: data/monitoring_reports/drift_report.json
+      hash: md5
+      md5: cc530c5ac87ef56ac0cea820f5343f22
+      size: 85825
+  infer_batch:
+    cmd: python src/inference/infer_batch.py
+    deps:
+    - path: data/raw/inference/
+      hash: md5
+      md5: 005d6e0a3612fb43a5fec4f8c52ff698.dir
+      size: 121855060
+      nfiles: 1
+    - path: models/artifacts/model.pkl
+      hash: md5
+      md5: daea8b9e2d5cc257f9dbc8840fbd1659
+      size: 1231919337
+    - path: models/pipelines/preprocess.pkl
+      hash: md5
+      md5: 59a014c74cc618733b3a80459a523e0b
+      size: 10349
+    - path: src/inference/infer_batch.py
+      hash: md5
+      md5: 8a3f9e240cba519887ed6f24601bf93b
+      size: 6009
+    outs:
+    - path: data/inference_logs/log.csv
+      hash: md5
+      md5: 0442dfbd76575431be3dfa589d22aeea
+      size: 600548474
+    - path: data/inference_logs/predicciones_batch.csv
+      hash: md5
+      md5: 618c7360769a42f64fe5675d4a801c05
+      size: 128038978
+  postprocess:
+    cmd: python src/postprocessing/postprocessing.py
+    deps:
+    - path: data/inference_logs/predicciones_batch.csv
+      hash: md5
+      md5: 618c7360769a42f64fe5675d4a801c05
+      size: 128038978
+    - path: src/postprocessing/postprocessing.py
+      hash: md5
+      md5: 198dc004c57f3d32b2b68c4707742a74
+      size: 3562
+    outs:
+    - path: data/postprocessed/business_value.csv
+      hash: md5
+      md5: 291ec99ad2ed29c72cdccf695f75712a
+      size: 138918455
+  retrain:
+    cmd: python src/retraining/retrain.py
+    deps:
+    - path: data/drift/drift_flag.txt
+      hash: md5
+      md5: cfcd208495d565ef66e7dff9f98764da
+      size: 1
+    - path: src/retraining/retrain.py
+      hash: md5
+      md5: b78772ed6c62f81a0635e73e1bbcf651
+      size: 3453

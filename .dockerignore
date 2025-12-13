@@ -1,0 +1,34 @@
+# Directorios grandes o irrelevantes
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+*.log
+*.gz
+*.zip
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Datos y modelos
+data/
+datasets/
+models/
+artifacts/
+mlruns/
+notebooks/
+
+# Archivos grandes
+*.csv
+*.xlsx
+*.pkl
+*.joblib
+*.h5
+
+# Git
+.git/
+.gitignore

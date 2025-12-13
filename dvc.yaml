@@ -1,13 +1,25 @@
 stages:
+
+  # ============================================================
+  # 1. PREPROCESAMIENTO DE ENTRENAMIENTO
+  # Lee TODOS los CSV dentro de data/raw/training/
+  # Los combina, ejecuta limpieza, split, imputación y encoding.
+  # ============================================================
   preprocess_train:
     cmd: python src/preprocessing/prep_train.py
     deps:
       - src/preprocessing/prep_train.py
-      - data/raw/training/p1_extrac.csv
+      - data/raw/training/
     outs:
-      - data/processed/train/
-      - data/processed/test/
+      - data/processed/train/train_arrays.npz
+      - data/processed/test/test_arrays.npz
       - models/pipelines/preprocess.pkl
+
+
+  # ============================================================
+  # 2. ENTRENAMIENTO AUTOMÁTICO
+  # Usa train_arrays.npz + preprocess.pkl → entrena AutoML
+  # ============================================================
   train:
     cmd: python src/training/train.py
     deps:
@@ -16,13 +28,64 @@ stages:
       - models/pipelines/preprocess.pkl
     outs:
       - models/artifacts/model.pkl
+
+
+  # ============================================================
+  # 3. INFERENCIA POR LOTES
+  # Toma automáticamente cualquier CSV nuevo dentro de:
+  #       data/raw/inference/
+  # Produce logs y predicciones_batch.csv
+  # (si hay varios archivos, toma el PRIMERO del folder)
+  # ============================================================
+  infer_batch:
+    cmd: python src/inference/infer_batch.py
+    deps:
+      - src/inference/infer_batch.py
+      - models/pipelines/preprocess.pkl
+      - models/artifacts/model.pkl
+      - data/raw/inference/
+    outs:
+      - data/inference_logs/log.csv
+      - data/inference_logs/predicciones_batch.csv
+
+
+  # ============================================================
+  # 4. POSTPROCESSING
+  # Lee predicciones_batch.csv + logs
+  # Calcula business value por registro
+  # Produce un CSV final de valor de negocio
+  # ============================================================
+  postprocess:
+    cmd: python src/postprocessing/postprocessing.py
+    deps:
+      - src/postprocessing/postprocessing.py
+      - data/inference_logs/predicciones_batch.csv
+    outs:
+      - data/postprocessed/business_value.csv
+
+
+  # ============================================================
+  # 5. MONITOREO
+  # Compara train_arrays.npz vs inferencias recientes
+  # Genera data drift en HTML + JSON
+  # ============================================================
   monitor:
     cmd: python src/monitoring/monitor.py
     deps:
       - src/monitoring/monitor.py
-      - models/pipelines/preprocess.pkl
       - data/processed/train/train_arrays.npz
-      - data/inference_logs/prediction_log.csv
+      - data/inference_logs/log.csv
+      - models/pipelines/preprocess.pkl
     outs:
-      - data/monitoring_reports/drift_report.html
       - data/monitoring_reports/drift_report.json
+      - data/monitoring_reports/drift_report.html
+      - data/drift/drift_flag.txt
+
+  # ============================================================
+  # 6. RETRAIN
+  # ============================================================
+  retrain:
+    cmd: python src/retraining/retrain.py
+    deps:
+      - src/retraining/retrain.py
+      - data/drift/drift_flag.txt

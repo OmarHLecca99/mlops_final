@@ -1,8 +1,37 @@
-data/
-__pycache__/
-.env
+# =========================================
+# Carpetas generadas automáticamente (NO versionarlas)
+# =========================================
+
+# Artefactos de MLflow (logs de experimentos)
 mlruns/
 artifact_store/
-*.pkl
+
+# Archivos temporales de Python
+__pycache__/
 *.log
-!data/**/*.dvc
+
+# Entornos virtuales
+.env
+.venv/
+
+# Archivos derivados internos del modelo (modelos entrenados)
+*.pkl
+*.joblib
+
+# =========================================
+# DVC maneja data/, NO GIT
+# PERO debes permitir que el RAW_DATA exista para lectura
+# =========================================
+
+# Ignorar todo en data excepto los archivos específicos que necesitas
+data/*
+!data/raw/**
+!data/**/*.dvc  # Permitir archivos de control de DVC (como los .dvc)
+!data/raw/      # Permitir solo la carpeta raw (archivos de datos sin procesar)
+
+# Ignorar archivos generados por el pipeline
+data/drift/
+data/inference_logs/
+data/monitoring_reports/
+data/postprocessed/
+data/processed/

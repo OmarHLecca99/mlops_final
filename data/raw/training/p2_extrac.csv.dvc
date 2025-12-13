@@ -1,0 +1,5 @@
+outs:
+- md5: e0e6ff5b6d66b5945354fef232314e3c
+  size: 135854130
+  hash: md5
+  path: p2_extrac.csv
