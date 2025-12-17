@@ -86,8 +86,7 @@ def get_models_and_grids():
         "GradientBoosting": GradientBoostingClassifier(),
         "XGBoost": XGBClassifier(
             eval_metric="logloss",
-            tree_method="hist",
-            use_label_encoder=False
+            tree_method="hist"
         )
     }
 
