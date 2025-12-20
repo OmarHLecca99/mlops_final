@@ -27,7 +27,7 @@ from src.mlflow_tracking import (
 
 TRAIN_DATA_PATH = "data/processed/train/train_arrays.npz"
 PREPROCESSOR_PATH = "models/pipelines/preprocess.pkl"
-INFERENCE_LOG_PATH = "data/inference_logs/log.csv"
+RAW_INFERENCE_DIR = "data/raw/inference"
 
 # Drift flag para DVC
 DRIFT_FLAG_PATH = "data/drift/drift_flag.txt"
@@ -88,48 +88,50 @@ def load_training_baseline(preprocessor):
     return df_train_sample, feature_names
 
 
-def load_inference_data(preprocessor, feature_names):
-    print("[INFO] Cargando logs de inferencia...")
+def get_latest_inference_csv(directory):
+    print("[INFO] Buscando último CSV de inferencia...")
 
-    if not os.path.exists(INFERENCE_LOG_PATH):
-        raise FileNotFoundError("[ERROR] No se encontró el archivo de log: log.csv")
+    csv_files = [
+        os.path.join(directory, f)
+        for f in os.listdir(directory)
+        if f.endswith(".csv")
+    ]
 
-    logs = pd.read_csv(INFERENCE_LOG_PATH)
-    print(f"[INFO] Total inferencias: {len(logs)}")
+    if not csv_files:
+        raise FileNotFoundError("[ERROR] No hay CSVs en data/raw/inference/")
 
-    parsed_rows = []
-    for row in logs["input"]:
-        try:
-            parsed_rows.append(json.loads(row))
-        except json.JSONDecodeError:
-            clean = row.replace('""', '"')
-            parsed_rows.append(json.loads(clean))
+    latest_file = max(csv_files, key=os.path.getctime)
+    print(f"[INFO] CSV de inferencia seleccionado: {latest_file}")
 
-    df_inputs = pd.DataFrame(parsed_rows)
-    print(f"[INFO] Shape original inputs: {df_inputs.shape}")
+    return latest_file
 
-    # Reparar "nan"
-    for col in df_inputs.columns:
-        if df_inputs[col].dtype == object:
-            df_inputs[col] = df_inputs[col].replace("nan", np.nan)
 
-    print("[INFO] Transformando inferencias...")
-    X_inf = preprocessor.transform(df_inputs)
+def load_raw_inference_data(preprocessor, feature_names):
+    csv_path = get_latest_inference_csv(RAW_INFERENCE_DIR)
 
-    try:
+    print("[INFO] Cargando datos raw de inferencia...")
+    df_raw = pd.read_csv(csv_path)
+    print(f"[INFO] Shape raw inferencia: {df_raw.shape}")
+
+    # Normalizar "nan" string
+    for col in df_raw.columns:
+        if df_raw[col].dtype == object:
+            df_raw[col] = df_raw[col].replace("nan", np.nan)
+
+    print("[INFO] Aplicando preprocesamiento...")
+    X_inf = preprocessor.transform(df_raw)
+
+    if sparse.issparse(X_inf):
         X_inf = X_inf.toarray()
-    except:
-        pass
 
     df_inf = pd.DataFrame(X_inf, columns=feature_names)
-    print(f"[INFO] Shape inferencias procesadas: {df_inf.shape}")
+    print(f"[INFO] Inferencia procesada shape: {df_inf.shape}")
 
     df_inf_sample = df_inf.sample(
         min(SAMPLE_SIZE, len(df_inf)),
         random_state=42
     )
 
-    print(f"[INFO] Inference sampleado a: {df_inf_sample.shape}")
     return df_inf_sample
 
 
@@ -212,7 +214,7 @@ def main():
 
         preprocessor = load_preprocessor()
         df_train, feature_names = load_training_baseline(preprocessor)
-        df_inf = load_inference_data(preprocessor, feature_names)
+        df_inf = load_raw_inference_data(preprocessor, feature_names)
 
         report_html, report_json = generate_reports(df_train, df_inf)
 

@@ -6,10 +6,10 @@ Incluye:
 
 ✔ Preprocesamiento automatizado  
 ✔ Entrenamiento del modelo  
-✔ Inferencia por lotes  
-✔ Postprocesamiento y valor de negocio  
 ✔ Monitoreo de *data drift*  
 ✔ Reentrenamiento automático cuando drift > **0.15**  
+✔ Inferencia por lotes  
+✔ Postprocesamiento y valor de negocio  
 ✔ Versionado con **DVC**  
 ✔ Trazabilidad con **MLflow**  
 ✔ Contenerización con **Docker**
@@ -73,7 +73,7 @@ target
 
 #### **Inferencia** (`data/raw/inference/`)
 - p5_extrac.csv  
-*(si hay varios archivos, se toma el primero)*
+*(si hay varios archivos, se toma el ultimo cargado)*
 
 ---
 
@@ -159,9 +159,13 @@ docker-compose build
 ### Ejecutar el contenedor
 docker-compose up
 
+### Iniciar app (Streamlit):
+http://localhost:8501/
+
 📊 MLflow
 ### Iniciar interfaz de experimentos:
 mlflow ui
+http://localhost:5000/
 
 📚 Requisitos
 ### Instalar dependencias:

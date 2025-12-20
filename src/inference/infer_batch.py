@@ -26,6 +26,7 @@ FIXED_OUTPUT_BATCH_PRED = "data/inference_logs/predicciones_batch.csv"
 PREPROCESSOR_PATH = "models/pipelines/preprocess.pkl"
 MODEL_PATH = "models/artifacts/model.pkl"
 
+DRIFT_FLAG_PATH = "data/drift/drift_flag.txt"
 
 # ============================================================
 # Utils
@@ -54,7 +55,7 @@ def auto_detect_input():
         )
 
     # Ordenar los archivos por fecha de modificación (o por nombre si tiene la fecha)
-    files_sorted = sorted(files, key=os.path.getmtime, reverse=True)
+    files_sorted = sorted(files, key=os.path.getctime, reverse=True)
     
     print(f"[INFO] Archivo detectado automáticamente: {files_sorted[0]}")
     return files_sorted[0]
@@ -136,6 +137,17 @@ def log_batch(df_raw, preds, probas, input_file):
     print(f"[INFO] Predicciones guardadas en {FIXED_LOG_PATH}")
     print(f"[INFO] Predicciones guardadas en {FIXED_OUTPUT_BATCH_PRED}")
 
+# ============================================================
+# Utils para el Drift Flag
+# ============================================================
+
+def read_drift_flag():
+    """Lee el drift_flag.txt para verificar si hay drift detectado"""
+    if os.path.exists(DRIFT_FLAG_PATH):
+        with open(DRIFT_FLAG_PATH, "r") as file:
+            drift_flag = file.read().strip()
+            return int(drift_flag)  # Devuelve 0 o 1
+    return None  # Si el archivo no existe, consideramos que no hubo retrain
 
 # ============================================================
 # Main
@@ -143,49 +155,59 @@ def log_batch(df_raw, preds, probas, input_file):
 
 def main(input_path=None):
 
-    # Inicializar MLflow para inferencia
-    setup_mlflow("mlops_final_project")
+    # Leer el drift flag antes de proceder
+    drift_flag = read_drift_flag()
 
-    # Si no se especifica un archivo, detecta el más reciente
-    if input_path is None:
-        input_path = auto_detect_input()
+    if drift_flag == 1:
+        print("[INFO] Drift detectado. Terminando ejecución de inferencia.")
+        return  # Termina si el drift es 1 (no ejecutar inferencia)
 
-    # Cargar el preprocesador y el modelo guardado
-    preprocessor, model = load_artifacts()
+    if drift_flag == 0 or drift_flag is None:
+        print("[INFO] No hay drift o el archivo drift_flag.txt no existe. Continuando con la inferencia.")
+     
+        # Inicializar MLflow para inferencia
+        setup_mlflow("mlops_final_project")
 
-    start_time = time.time()
+        # Si no se especifica un archivo, detecta el más reciente
+        if input_path is None:
+            input_path = auto_detect_input()
 
-    # Iniciar un run de MLflow
-    with start_mlflow_run("batch_inference"):
+        # Cargar el preprocesador y el modelo guardado
+        preprocessor, model = load_artifacts()
 
-        log_params({"input_file": input_path})
+        start_time = time.time()
 
-        # Cargar los datos
-        df_raw = load_batch(input_path)
-        
-        # Preprocesar los datos
-        X = preprocess_batch(preprocessor, df_raw)
+        # Iniciar un run de MLflow
+        with start_mlflow_run("batch_inference"):
 
-        # Realizar la inferencia
-        preds, probas = infer_batch(model, X)
+            log_params({"input_file": input_path})
 
-        # Registrar logs y artefactos
-        log_batch(df_raw, preds, probas, input_file=input_path)
+            # Cargar los datos
+            df_raw = load_batch(input_path)
+            
+            # Preprocesar los datos
+            X = preprocess_batch(preprocessor, df_raw)
 
-        # Registrar métricas de desempeño
-        log_metrics({
-            "n_registros": len(df_raw),
-            "positivos_predichos": int(sum(preds)),
-            "tiempo_inferencia": time.time() - start_time
-        })
+            # Realizar la inferencia
+            preds, probas = infer_batch(model, X)
 
-        # Registrar archivo de salida en MLflow
-        log_artifact(FIXED_OUTPUT_BATCH_PRED)
+            # Registrar logs y artefactos
+            log_batch(df_raw, preds, probas, input_file=input_path)
 
-        print("\n===== RESUMEN DEL BATCH =====")
-        print(f"Total registros: {len(df_raw)}")
-        print(f"Predicción positiva: {sum(preds)}")
-        print("=============================\n")
+            # Registrar métricas de desempeño
+            log_metrics({
+                "n_registros": len(df_raw),
+                "positivos_predichos": int(sum(preds)),
+                "tiempo_inferencia": time.time() - start_time
+            })
+
+            # Registrar archivo de salida en MLflow
+            log_artifact(FIXED_OUTPUT_BATCH_PRED)
+
+            print("\n===== RESUMEN DEL BATCH =====")
+            print(f"Total registros: {len(df_raw)}")
+            print(f"Predicción positiva: {sum(preds)}")
+            print("=============================\n")
 
 
 if __name__ == "__main__":

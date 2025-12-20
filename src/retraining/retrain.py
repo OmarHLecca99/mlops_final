@@ -46,7 +46,7 @@ def get_latest_inference_file():
     if len(files) == 0:
         raise FileNotFoundError("[ERROR] No hay archivos en data/raw/inference/")
 
-    latest = max(files, key=os.path.getmtime)
+    latest = max(files, key=os.path.getctime)
     print(f"[INFO] Último archivo detectado: {latest}")
     return latest
 
@@ -61,12 +61,25 @@ def move_to_training(file_path):
     return dest
 
 
+def remove_oldest_file_in_training():
+    """Elimina el archivo más antiguo en el directorio de entrenamiento."""
+    files = glob.glob(os.path.join(RAW_TRAINING_DIR, "*.csv"))
+    if len(files) > 4:  # Asumiendo que deseas mantener 4 archivos
+        oldest_file = min(files, key=os.path.getctime)
+        print(f"[INFO] Eliminando el archivo más antiguo: {oldest_file}")
+        os.remove(oldest_file)
+    
+        # Eliminar también el archivo .dvc correspondiente
+        dvc_file = oldest_file + ".dvc"
+        if os.path.exists(dvc_file):
+            os.remove(dvc_file)
+            print(f"[INFO] Eliminando el archivo .dvc correspondiente: {dvc_file}")
+            
 def run_python_script(script):
     print(f"[INFO] Ejecutando script: {script}")
     result = subprocess.run([PYTHON, script])
     if result.returncode != 0:
         raise RuntimeError(f"[ERROR] Falló: {script}")
-
 
 # ============================================================
 # Main
@@ -92,6 +105,8 @@ def main():
         # Mover el archivo que causó el drift al training set
         latest = get_latest_inference_file()
         moved_file = move_to_training(latest)
+
+        remove_oldest_file_in_training()
 
         log_params({
             "nuevo_archivo_entrenamiento": moved_file,

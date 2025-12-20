@@ -21,7 +21,7 @@ from src.mlflow_tracking import (
     log_metrics,
     log_model
 )
-
+os.environ["LOKY_MAX_CPU_COUNT"] = "4"
 # ============================================================
 # Paths
 # ============================================================
@@ -92,7 +92,7 @@ def get_models_and_grids():
 
     grids = {
         "RandomForest": {
-            "n_estimators": [150, 250],
+            "n_estimators": [100, 150],
             "max_depth": [10, 20]
         },
         "GradientBoosting": {
@@ -138,7 +138,7 @@ def train():
 
     best_model = None
     best_metrics = None
-    best_score = -1
+    best_score = 1
     best_params = None
     best_name = ""
 
@@ -154,7 +154,7 @@ def train():
                 estimator=model,
                 param_grid=param_grid,
                 scoring="accuracy",
-                cv=3,
+                cv=2,
                 n_jobs=-1,
                 verbose=1
             )

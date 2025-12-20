@@ -14,6 +14,7 @@ from src.mlflow_tracking import (
 
 # Archivos fijos para sobrescribir
 FIXED_OUTPUT_FINAL_PATH = "data/postprocessed/business_value.csv"  # Este es el archivo fijo
+DRIFT_FLAG_PATH = "data/drift/drift_flag.txt"  # Ruta del archivo de drift flag
 
 # ============================================================
 # Utils
@@ -62,6 +63,13 @@ def save_output(df):
     df.to_csv(FIXED_OUTPUT_FINAL_PATH, index=False)  # Guardar el archivo fijo
     print(f"[INFO] Archivo final guardado en el archivo fijo: {FIXED_OUTPUT_FINAL_PATH}")
 
+def read_drift_flag():
+    """Lee el drift_flag.txt para verificar si hay drift detectado"""
+    if os.path.exists(DRIFT_FLAG_PATH):
+        with open(DRIFT_FLAG_PATH, "r") as file:
+            drift_flag = file.read().strip()
+            return int(drift_flag)  # Devuelve 0 o 1
+    return None  # Si el archivo no existe, consideramos que no hubo retrain
 
 # ============================================================
 # Main
@@ -69,47 +77,55 @@ def save_output(df):
 
 def main():
 
-    # Inicializar MLflow en el experimento correcto
-    setup_mlflow("mlops_final_project")
+    drift_flag = read_drift_flag()
+    if drift_flag == 1:
+        print("[INFO] Drift detectado. Terminando ejecución de postprocesamiento.")
+        return  # Termina si el drift es 1 (no ejecutar postprocesamiento)
+    
+    if drift_flag == 0 or drift_flag is None:
+        print("[INFO] No hay drift o el archivo drift_flag.txt no existe. Continuando con el postprocesamiento.")
 
-    with start_mlflow_run("postprocessing_run"):
+        # Inicializar MLflow en el experimento correcto
+        setup_mlflow("mlops_final_project")
 
-        ensure_directories()
+        with start_mlflow_run("postprocessing_run"):
 
-        # Cargar predicciones (archivo fijo)
-        df_pred = load_predictions()
-        
-        # Calcular el valor de negocio
-        df_final = compute_business_value(df_pred)
+            ensure_directories()
 
-        # Guardar el archivo de salida con el valor de negocio calculado
-        save_output(df_final)
+            # Cargar predicciones (archivo fijo)
+            df_pred = load_predictions()
+            
+            # Calcular el valor de negocio
+            df_final = compute_business_value(df_pred)
 
-        # ===============================
-        # Logging en MLflow
-        # ===============================
+            # Guardar el archivo de salida con el valor de negocio calculado
+            save_output(df_final)
 
-        # Parámetros de entrada
-        params = {
-            "total_registros": len(df_final),
-            "columnas_input": ",".join(df_pred.columns)
-        }
-        log_params(params)
+            # ===============================
+            # Logging en MLflow
+            # ===============================
 
-        # Métricas del valor de negocio
-        metrics = {
-            "valor_total": float(df_final["valor_negocio"].sum()),
-            "valor_promedio": float(df_final["valor_negocio"].mean()),
-            "valor_maximo": float(df_final["valor_negocio"].max())
-        }
-        log_metrics(metrics)
+            # Parámetros de entrada
+            params = {
+                "total_registros": len(df_final),
+                "columnas_input": ",".join(df_pred.columns)
+            }
+            log_params(params)
 
-        # Artifact final
-        log_artifact(FIXED_OUTPUT_FINAL_PATH, artifact_path="business_value")
+            # Métricas del valor de negocio
+            metrics = {
+                "valor_total": float(df_final["valor_negocio"].sum()),
+                "valor_promedio": float(df_final["valor_negocio"].mean()),
+                "valor_maximo": float(df_final["valor_negocio"].max())
+            }
+            log_metrics(metrics)
 
-        print("[INFO] Postprocessing registrado en MLflow.")
+            # Artifact final
+            log_artifact(FIXED_OUTPUT_FINAL_PATH, artifact_path="business_value")
 
-    print("\n===== POSTPROCESSING COMPLETADO =====\n")
+            print("[INFO] Postprocessing registrado en MLflow.")
+
+        print("\n===== POSTPROCESSING COMPLETADO =====\n")
 
 
 if __name__ == "__main__":

@@ -5,8 +5,8 @@ stages:
     deps:
     - path: data/raw/training/
       hash: md5
-      md5: 63c8f174a47f3e8c4e5af276c1c1fb9f.dir
-      size: 528522352
+      md5: 4cc9547c09427d42133ec97827370eed.dir
+      size: 528522496
       nfiles: 9
     - path: src/preprocessing/prep_train.py
       hash: md5
@@ -38,32 +38,33 @@ stages:
       size: 10349
     - path: src/training/train.py
       hash: md5
-      md5: 4be231d608dccfd9ce5d7890220b0488
-      size: 5542
+      md5: 7d4c94b7819154345e95a9b758270b5c
+      size: 5580
     outs:
     - path: models/artifacts/model.pkl
       hash: md5
-      md5: 1c600445bb26200a433d889a84affbaf
-      size: 1234642697
+      md5: 3f916418ddade5b1104519d38cfcf548
+      size: 737312297
   monitor:
     cmd: python src/monitoring/monitor.py
     deps:
-    - path: data/inference_logs/log.csv
-      hash: md5
-      md5: cab642c878543930c676e83662319c1c
-      size: 600553314
     - path: data/processed/train/train_arrays.npz
       hash: md5
       md5: 92c449ca7082ff39e99ceffc40fb3743
       size: 210499387
+    - path: data/raw/inference
+      hash: md5
+      md5: 005d6e0a3612fb43a5fec4f8c52ff698.dir
+      size: 121855060
+      nfiles: 1
     - path: models/pipelines/preprocess.pkl
       hash: md5
       md5: 59a014c74cc618733b3a80459a523e0b
       size: 10349
     - path: src/monitoring/monitor.py
       hash: md5
-      md5: ac214b32262116f50204839535c2f003
-      size: 7316
+      md5: 0f00aa10ab8b669f31eb1f00d8062c3f
+      size: 7299
     outs:
     - path: data/drift/drift_flag.txt
       hash: md5
@@ -71,11 +72,11 @@ stages:
       size: 1
     - path: data/monitoring_reports/drift_report.html
       hash: md5
-      md5: 120ff69cfc20b35fb2f75571a86e007f
+      md5: 893e98417a175933e01ef4ca4c8dcfbe
       size: 5518065
     - path: data/monitoring_reports/drift_report.json
       hash: md5
-      md5: 3d50944427c7bf01ccae49343baaa6da
+      md5: 57266caa9881761837cae66176066773
       size: 85825
   infer_batch:
     cmd: python src/inference/infer_batch.py
@@ -87,41 +88,41 @@ stages:
       nfiles: 1
     - path: models/artifacts/model.pkl
       hash: md5
-      md5: 1c600445bb26200a433d889a84affbaf
-      size: 1234642697
+      md5: 3f916418ddade5b1104519d38cfcf548
+      size: 737312297
     - path: models/pipelines/preprocess.pkl
       hash: md5
       md5: 59a014c74cc618733b3a80459a523e0b
       size: 10349
     - path: src/inference/infer_batch.py
       hash: md5
-      md5: 8a3f9e240cba519887ed6f24601bf93b
-      size: 6009
+      md5: 9364048dbe2e80c9435891e5b75d525a
+      size: 7125
     outs:
     - path: data/inference_logs/log.csv
       hash: md5
-      md5: cab642c878543930c676e83662319c1c
-      size: 600553314
+      md5: 404047cb45be7c0477fb10de546c049e
+      size: 600556371
     - path: data/inference_logs/predicciones_batch.csv
       hash: md5
-      md5: a76b6bb62ecd896e274b366c88be2318
-      size: 128043818
+      md5: f5923694edbf19076b5157a942bc2052
+      size: 128046875
   postprocess:
     cmd: python src/postprocessing/postprocessing.py
     deps:
     - path: data/inference_logs/predicciones_batch.csv
       hash: md5
-      md5: a76b6bb62ecd896e274b366c88be2318
-      size: 128043818
+      md5: f5923694edbf19076b5157a942bc2052
+      size: 128046875
     - path: src/postprocessing/postprocessing.py
       hash: md5
-      md5: 198dc004c57f3d32b2b68c4707742a74
-      size: 3562
+      md5: 0c16c2b0098c0b9d42b245c4069c1f61
+      size: 4524
     outs:
     - path: data/postprocessed/business_value.csv
       hash: md5
-      md5: 20beb1f27bff151d0032b9b3d46e2c0d
-      size: 138923122
+      md5: dd3e11cf8eb3467f93285dfe55839239
+      size: 138926502
   retrain:
     cmd: python src/retraining/retrain.py
     deps:
@@ -131,5 +132,5 @@ stages:
       size: 1
     - path: src/retraining/retrain.py
       hash: md5
-      md5: b78772ed6c62f81a0635e73e1bbcf651
-      size: 3453
+      md5: efa86b0218240071b60e3211353a47c4
+      size: 4555

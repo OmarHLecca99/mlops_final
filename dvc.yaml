@@ -31,7 +31,34 @@ stages:
 
 
   # ============================================================
-  # 3. INFERENCIA POR LOTES
+  # 3. MONITOREO
+  # Compara train_arrays.npz vs inference raw
+  # Genera data drift en HTML + JSON
+  # ============================================================
+  monitor:
+    cmd: python src/monitoring/monitor.py
+    deps:
+      - src/monitoring/monitor.py
+      - data/processed/train/train_arrays.npz
+      - data/raw/inference
+      - models/pipelines/preprocess.pkl
+    outs:
+      - data/monitoring_reports/drift_report.json
+      - data/monitoring_reports/drift_report.html
+      - data/drift/drift_flag.txt
+
+  # ============================================================
+  # 4. RETRAIN
+  # ============================================================
+  retrain:
+    cmd: python src/retraining/retrain.py
+    deps:
+      - src/retraining/retrain.py
+      - data/drift/drift_flag.txt
+
+
+  # ============================================================
+  # 5. INFERENCIA POR LOTES
   # Toma automáticamente cualquier CSV nuevo dentro de:
   #       data/raw/inference/
   # Produce logs y predicciones_batch.csv
@@ -50,7 +77,7 @@ stages:
 
 
   # ============================================================
-  # 4. POSTPROCESSING
+  # 6. POSTPROCESSING
   # Lee predicciones_batch.csv + logs
   # Calcula business value por registro
   # Produce un CSV final de valor de negocio
@@ -62,30 +89,3 @@ stages:
       - data/inference_logs/predicciones_batch.csv
     outs:
       - data/postprocessed/business_value.csv
-
-
-  # ============================================================
-  # 5. MONITOREO
-  # Compara train_arrays.npz vs inferencias recientes
-  # Genera data drift en HTML + JSON
-  # ============================================================
-  monitor:
-    cmd: python src/monitoring/monitor.py
-    deps:
-      - src/monitoring/monitor.py
-      - data/processed/train/train_arrays.npz
-      - data/inference_logs/log.csv
-      - models/pipelines/preprocess.pkl
-    outs:
-      - data/monitoring_reports/drift_report.json
-      - data/monitoring_reports/drift_report.html
-      - data/drift/drift_flag.txt
-
-  # ============================================================
-  # 6. RETRAIN
-  # ============================================================
-  retrain:
-    cmd: python src/retraining/retrain.py
-    deps:
-      - src/retraining/retrain.py
-      - data/drift/drift_flag.txt
