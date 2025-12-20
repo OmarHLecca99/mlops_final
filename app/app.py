@@ -55,31 +55,34 @@ if uploaded_file is not None:
     st.success(f"Archivo guardado correctamente en: `{file_path}`")
 
 # ============================================================
-# 2. EJECUCIÓN DEL PIPELINE
+# 2. EJECUCIÓN DEL PIPELINE (LOGS EN VIVO)
 # ============================================================
 st.header("2. Ejecutar Pipeline")
 
 if st.button("Ejecutar Pipeline (dvc repro)"):
-    st.info("Ejecutando pipeline completo con DVC. Este proceso puede tomar varios minutos.")
+    st.info("Ejecutando pipeline completo con DVC. Logs en tiempo real:")
+
+    log_placeholder = st.empty()
+    logs = ""
 
     try:
         process = subprocess.Popen(
             ["dvc", "repro"],
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
         )
 
-        stdout, stderr = process.communicate()
+        # Leer línea por línea (streaming)
+        for line in iter(process.stdout.readline, ""):
+            logs += line
+            log_placeholder.code(logs)
 
-        st.subheader("Logs de ejecución")
-        st.code(stdout)
+        process.stdout.close()
+        return_code = process.wait()
 
-        if stderr:
-            st.subheader("Errores / Advertencias")
-            st.error(stderr)
-
-        if process.returncode == 0:
+        if return_code == 0:
             st.success("Pipeline ejecutado correctamente.")
         else:
             st.error("El pipeline finalizó con errores.")

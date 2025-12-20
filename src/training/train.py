@@ -6,8 +6,9 @@ import joblib
 import mlflow
 import mlflow.sklearn
 
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 from xgboost import XGBClassifier
 
@@ -64,7 +65,7 @@ def evaluate_model(model, X, y):
 
     try:
         probas = model.predict_proba(X)
-        auc = roc_auc_score(y, probas[:, 1])
+        auc = roc_auc_score(y, probas[:, 1], multi_class="ovr")
     except:
         auc = -1
 
@@ -82,11 +83,15 @@ def evaluate_model(model, X, y):
 def get_models_and_grids():
 
     models = {
-        "RandomForest": RandomForestClassifier(),
-        "GradientBoosting": GradientBoostingClassifier(),
+        "RandomForest": RandomForestClassifier(
+            random_state=42,
+            n_jobs=4
+        ),
         "XGBoost": XGBClassifier(
             eval_metric="logloss",
-            tree_method="hist"
+            tree_method="hist",
+            random_state=42,
+            n_jobs=4
         )
     }
 
@@ -94,10 +99,6 @@ def get_models_and_grids():
         "RandomForest": {
             "n_estimators": [100, 150],
             "max_depth": [10, 20]
-        },
-        "GradientBoosting": {
-            "learning_rate": [0.05, 0.1],
-            "max_depth": [2, 3]
         },
         "XGBoost": {
             "eta": [0.1, 0.2],
@@ -122,7 +123,7 @@ def train():
     X_train, y_train = load_processed_data()
 
     # 3. Cargar preprocesador (aunque no se use aquí directamente)
-    preprocessor = load_preprocessor()
+    #preprocessor = load_preprocessor()
 
     # 4. Aplicar balanceo de clases (SMOTE)
     print("[INFO] Aplicando SMOTE para balanceo de clases...")
@@ -132,6 +133,20 @@ def train():
     print("[INFO] Clases después de SMOTE:")
     unique, counts = np.unique(y_train_bal, return_counts=True)
     print(dict(zip(unique, counts)))
+
+
+    EVAL_SAMPLE_SIZE = 200_000
+    rng = np.random.default_rng(42)
+
+    idx = rng.choice(
+        len(X_train_bal),
+        size=min(EVAL_SAMPLE_SIZE, len(X_train_bal)),
+        replace=False
+    )
+
+    X_eval = X_train_bal[idx]
+    y_eval = y_train_bal[idx]
+
 
     # 5. Crear modelos y grids
     models, grids = get_models_and_grids()
@@ -150,19 +165,26 @@ def train():
 
             param_grid = grids[name]
 
+            cv = StratifiedKFold(
+                n_splits=2,
+                shuffle=True,
+                random_state=42
+            )
+
             grid = GridSearchCV(
                 estimator=model,
                 param_grid=param_grid,
                 scoring="accuracy",
-                cv=2,
-                n_jobs=-1,
+                cv=cv,
+                n_jobs=4,
                 verbose=1
             )
 
             # Aquí usamos el dataset balanceado
             grid.fit(X_train_bal, y_train_bal)
 
-            metrics = evaluate_model(grid.best_estimator_, X_train_bal, y_train_bal)
+            metrics = evaluate_model(grid.best_estimator_, X_eval, y_eval)   
+
             print(f"[INFO] Métricas {name}: {metrics}")
 
             # Seleccionar el mejor modelo según accuracy
